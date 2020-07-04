@@ -3,22 +3,30 @@ name: CI
 on: [push]
 
 jobs:
-  build:
+  test:
     timeout-minutes: 15
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8]
+        os: [ubuntu-latest]
         toxenv: [py]
         include:
         - python-version: 3.7
           toxenv: flake8
+          os: ubuntu-latest
         - python-version: 3.7
           toxenv: docs
+          os: ubuntu-latest
         - python-version: 3.7
           toxenv: twinecheck
+          os: ubuntu-latest
         - python-version: 3.7
           toxenv: black
+          os: ubuntu-latest
+        - python-version: 3.7
+          toxenv: py
+          os: macos-latest
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
