@@ -282,6 +282,7 @@ def run_whatshap(
     write_command_line_header=True,
     use_ped_samples=False,
     algorithm="whatshap",
+    use_tla=False
 ):
     """
     Run WhatsHap.
@@ -312,6 +313,7 @@ def run_whatshap(
     gtchange_list_filename -- filename to write list of changed genotypes to
     default_gq -- genotype likelihood to be used when GL or PL not available
     write_command_line_header -- whether to add a ##commandline header to the output VCF
+    use_tla -- whether to use the information provided by the TLA protocol
     """
 
     if algorithm == "hapchat" and ped is not None:
@@ -358,6 +360,7 @@ def run_whatshap(
                 ignore_read_groups,
                 mapq_threshold=mapping_quality,
                 indels=indels,
+                use_TLA=use_tla,
             )
         )
         show_phase_vcfs = phased_input_reader.has_vcfs
@@ -965,7 +968,9 @@ def add_arguments(parser):
     arg("--output-read-list", metavar="FILE", default=None, dest="read_list_filename",
         help="Write reads that have been used for phasing to FILE.")
     arg("--algorithm", choices=("whatshap", "hapchat"), default="whatshap",
-        help="Phasing algorithm to use (default: %(default)s)")
+        help="Phasing algorithm to use (default: %(default)s)"),
+    arg("--use_tla", action="store_true", default=False,
+        help="Run the algorithm for the TLA protocol"),
 
     arg = parser.add_argument_group("Input pre-processing, selection and filtering").add_argument
     arg("--merge-reads", dest="read_merging", default=False, action="store_true",

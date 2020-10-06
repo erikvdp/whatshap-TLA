@@ -39,6 +39,7 @@ class ReadSetReader:
         gap_start=10,
         gap_extend=7,
         default_mismatch=15,
+        use_TLA=True,
     ):
         """
         paths -- list of BAM paths
@@ -48,6 +49,7 @@ class ReadSetReader:
         overhang -- extend alignment by this many bases to left and right
         affine -- use affine gap costs
         gap_start, gap_extend, default_mismatch -- parameters for affine gap cost alignment
+        use_TLA -- if True, reads with the same BX tag are considered into one ReadSet
         """
         self._mapq_threshold = mapq_threshold
         self._numeric_sample_ids = numeric_sample_ids
@@ -57,6 +59,7 @@ class ReadSetReader:
         self._default_mismatch = default_mismatch
         self._overhang = overhang
         self._paths = paths
+        self._use_TLA = use_TLA
         if len(paths) == 1:
             self._reader = SampleBamReader(paths[0], reference=reference)
         else:
@@ -93,7 +96,7 @@ class ReadSetReader:
 
         alignments = self._usable_alignments(chromosome, sample, regions)
         reads = self._alignments_to_reads(alignments, variants, sample, reference)
-        grouped_reads = self._group_paired_reads(reads)
+        grouped_reads = self._group_paired_reads(reads, self._use_TLA)
         readset = self._make_readset_from_grouped_reads(grouped_reads)
         return readset
 
@@ -105,7 +108,7 @@ class ReadSetReader:
         return read_set
 
     @staticmethod
-    def _group_paired_reads(reads: Iterable[Read]) -> Iterator[List[Read]]:
+    def _group_paired_reads(reads: Iterable[Read], tla_protocol: bool) -> Iterator[List[Read]]:
         """
         Group reads into paired-end read pairs. Uses name, source_id and sample_id
         as grouping key.
@@ -116,12 +119,11 @@ class ReadSetReader:
         """
         groups = defaultdict(list)
         for read in reads:
-            groups[(read.source_id, read.name, read.sample_id)].append(read)
+            if tla_protocol:
+                groups[(read.source_id, read.BX_tag, read.sample_id)].append(read)
+            else:
+                groups[(read.source_id, read.name, read.sample_id)].append(read)
         for group in groups.values():
-            if len(group) > 2:
-                raise ReadSetError(
-                    "Read name {!r} occurs more than twice in the input file".format(group[0].name)
-                )
             yield group
 
     def _usable_alignments(self, chromosome, sample, regions=None):
